@@ -28,7 +28,7 @@ EX0, EX1 = -9.95, 7.25      # šírka ako v schválenom návrhu = 17,20 m
 Y0 = 24.61                  # koniec spojovacieho krčku (krčok 4,41 m)
 T = 0.45                    # obvodová stena
 AX = (EX0 + EX1) / 2        # os súmernosti
-BD = 12.0                   # hĺbka domu = rozpon sedlovej strechy
+BD = 17.6                   # hĺbka domu = rozpon sedlovej strechy
 YF0, YF1 = Y0, Y0 + BD
 HH = 1.3                    # polovica šírky vstupnej haly
 UD = (BD - 2 * T - 0.25) / 2   # hĺbka jednej jednotky (5,425 m)
@@ -166,7 +166,7 @@ def shell(t, hallfill=None):
 def hall(t, upper=False, labels=True):
     y0 = YF0 + T
     sx0, sx1 = AX + 0.1, AX + HH
-    sy0, sy1 = y0 + 1.5, y0 + 5.8
+    sy0, sy1 = y0 + 6.2, y0 + 10.5
     t.rect(sx0, sy0, sx1, sy1, fill=(1, 1, 1), stroke=(0.3, 0.3, 0.7), lw=0.3)
     for i in range(1, 16):
         y = sy0 + i * (sy1 - sy0) / 16
@@ -181,15 +181,18 @@ def hall(t, upper=False, labels=True):
     else:
         t.door(AX - 0.6, YF0, AX + 0.6, YF0 + T, 0, (0, 1), col=RED)
         t.text(AX - 2.6, YF0 - 0.75, "▲ HLAVNÝ VSTUP z dvora", size=4, bold=True, col=RED)
-        t.rect(AX - HH, y0 + 7.0, AX - HH + 0.25, y0 + 8.5, fill=(1, 0.8, 0), stroke=(0, 0, 0))
+        t.rect(AX - HH, y0 + 1.5, AX - HH + 0.25, y0 + 3.0, fill=(1, 0.8, 0), stroke=(0, 0, 0))
         if labels:
-            t.text(AX - HH + 0.6, y0 + 7.75, "RE 6+2", size=3, rot=90)
+            t.text(AX - HH + 0.6, y0 + 2.25, "RE 6+2", size=3, rot=90)
 
 
-def unit(t, s, ns, name, fill=None, small=False, kdash=False, fwin=None, pk=False):
-    """Jednotka 35 m² (štvrtina podlažia). s=-1 západ/+1 východ, ns=+1 juh (dvor)/-1 sever (záhrada)."""
-    yb = YF0 + T if ns > 0 else YF1 - T      # vnútorná hrana fasády
-    yo = YF0 if ns > 0 else YF1              # vonkajšia hrana fasády
+def unit(t, s, ns, names, fill=None, small=False, kdash=False, fwin=None, pk=False,
+         open_kitchen=False, dash_entry=False):
+    """Jednotka 52 m² – 2-izbový byt so samostatnou kuchyňou (štvrtina podlažia).
+    s=-1 západ/+1 východ, ns=+1 juh (dvor)/-1 sever (záhrada).
+    names = (izba pri hale, rohová izba, miestnosť pri štíte)."""
+    yb = YF0 + T if ns > 0 else YF1 - T
+    yo = YF0 if ns > 0 else YF1
 
     def X(u):
         return AX + s * (HH + 0.25 + u)
@@ -202,29 +205,46 @@ def unit(t, s, ns, name, fill=None, small=False, kdash=False, fwin=None, pk=Fals
 
     if fill:
         R(0, 0, UW, UD, fill=fill)
-    R(2.2, 0, 2.3, UD, fill=WALL)
-    R(0, 2.6, 2.2, 2.7, fill=WALL)
-    R(0, UD - 0.75, 0.4, UD, fill=(0.2, 0.5, 0.9))
-    t.text(X(0.2), Yv(UD - 0.38), "Š", size=3.2, bold=True, col=(1, 1, 1))
-    R(0.5, UD - 0.8, 2.1, UD - 0.05, fill=(1, 1, 1), stroke=PINK, lw=0.3)   # vaňa
-    R(0.05, 3.5, 0.5, 4.1, fill=(1, 1, 1), stroke=PINK, lw=0.3)            # WC
-    R(1.6, 3.4, 2.15, 4.0, fill=(1, 1, 1), stroke=PINK, lw=0.3)            # umývadlo
-    R(2.4, 2.9, 3.0, UD - 0.1, fill=(1, 1, 1), stroke=GREEN, lw=0.4, dash=(1.5, 1.5) if kdash else None)
+    R(0, 4.6, UW, 4.7, fill=WALL)
+    if not open_kitchen:
+        R(2.8, 0, 2.9, 4.6, fill=WALL)
+    R(3.7, 4.7, 3.8, UD, fill=WALL)
+    R(0, 6.2, 3.7, 6.3, fill=WALL)
+    R(2.3, 6.3, 2.4, UD, fill=WALL)
+    # šachta (vo WC, pri strednej stene – dve jednotky ju majú chrbtom k sebe)
+    R(2.4, UD - 0.6, 2.8, UD, fill=(0.2, 0.5, 0.9))
+    t.text(X(2.6), Yv(UD - 0.3), "Š", size=3.2, bold=True, col=(1, 1, 1))
+    R(0.1, UD - 0.8, 1.8, UD - 0.05, fill=(1, 1, 1), stroke=PINK, lw=0.3)   # vaňa
+    R(1.75, 6.4, 2.25, 6.9, fill=(1, 1, 1), stroke=PINK, lw=0.3)            # umývadlo
+    R(3.0, 7.0, 3.5, 7.6, fill=(1, 1, 1), stroke=PINK, lw=0.3)              # WC
+    kd = (1.5, 1.5) if kdash else None
+    if open_kitchen:
+        R(0.2, 3.9, 2.6, 4.5, fill=(1, 1, 1), stroke=GREEN, lw=0.4, dash=kd)
+    else:
+        R(3.9, 6.3, 4.5, UD - 0.1, fill=(1, 1, 1), stroke=GREEN, lw=0.4, dash=kd)
     if not small:
-        t.text(X(4.6), Yv(2.4), name + "\n23,3 m²", size=4.2)
-        t.text(X(1.1), Yv(1.6), "Chodba\n5,7 m²", size=3.4)
-        t.text(X(1.1), Yv(4.4), "Kúp. 6,0 m²", size=3)
-    t.door(X(2.2), Yv(0.9), X(2.3), Yv(1.7), 0 if ns > 0 else 1, (s, 0))
-    t.door(X(0.8), Yv(2.6), X(1.5), Yv(2.7), 0 if s > 0 else 1, (0, ns))
-    # vstup z haly
-    t.door(X(-0.25), Yv(0.5), X(0), Yv(1.4), 0 if ns > 0 else 1, (s, 0), col=RED,
-           dash=(1.5, 1.2) if (name.startswith("Izba") and not small and not pk) else None)
-    fw = fwin if fwin is not None else [(2.9, 4.3), (4.9, 6.1)]
+        t.text(X(1.4), Yv(2.0), names[0] + "\n12,9 m²", size=4)
+        t.text(X(4.75), Yv(2.0), names[1] + "\n17,0 m²", size=4)
+        t.text(X(5.55), Yv(6.6), names[2] + "\n9,8 m²", size=3.8)
+        t.text(X(1.6), Yv(5.75), "Chodba 5,6 m²", size=3.2)
+        t.text(X(1.1), Yv(7.1), "Kúp. 4,4 m²", size=3)
+        t.text(X(3.05), Yv(6.65), "WC", size=3)
+    # dvere
+    if not open_kitchen:
+        t.door(X(1.0), Yv(4.6), X(1.8), Yv(4.7), 0 if s > 0 else 1, (0, -ns))
+    t.door(X(2.95), Yv(4.6), X(3.65), Yv(4.7), 0 if s > 0 else 1, (0, -ns))
+    t.door(X(3.7), Yv(5.0), X(3.8), Yv(5.8), 0 if ns > 0 else 1, (s, 0))
+    t.door(X(0.8), Yv(6.2), X(1.5), Yv(6.3), 0 if s > 0 else 1, (0, ns))
+    t.door(X(2.75), Yv(6.2), X(3.4), Yv(6.3), 0 if s > 0 else 1, (0, ns))
+    t.door(X(-0.25), Yv(5.0), X(0), Yv(5.9), 0 if ns > 0 else 1, (s, 0), col=RED,
+           dash=(1.5, 1.2) if dash_entry else None)
+    fw = fwin if fwin is not None else [(0.8, 2.0), (3.9, 5.3)]
     for (u0, u1) in fw:
         t.window(X(u0), yo, X(u1), yo + ns * T)
         if pk:
             t.text(X((u0 + u1) / 2), yo - ns * 0.35, "vikier", size=3)
-    t.window(X(UW), Yv(2.1), X(UW + T), Yv(3.3))
+    for vc in (2.3, 6.5):
+        t.window(X(UW), Yv(vc - 0.6), X(UW + T), Yv(vc + 0.6))
 
 
 def extension(t, floor, scheme=False):
@@ -232,26 +252,31 @@ def extension(t, floor, scheme=False):
     shell(t, hallfill=COL["S"] if scheme else None)
     hall(t, upper=pk, labels=not scheme)
     f = (lambda k: COL[k]) if scheme else (lambda k: None)
-    liv = "Obývačka + kuchyňa"
-    prep = "Izba / spálňa\n(príprava kuchyne)"
     split = scheme and not pk
     keys = {(-1, 1): "A1", (1, 1): "A2", (-1, -1): "B1", (1, -1): "B2"}
+    full = ("Spálňa", "Obývačka", "Kuchyňa")
+    prep = ("Spálňa", "Izba", "Izba / jedáleň\n(príprava kuch.)")
     for s in (-1, 1):
         for ns in (1, -1):
             k = keys[(s, ns)] if not pk else ("PA" if s < 0 else "PB")
-            fw = [(4.9, 6.1)] if (s > 0 and ns > 0 and not pk) else None   # juh-východ zakrýva krčok
-            unit(t, s, ns, liv if (ns > 0 or split) else prep, fill=f(k), small=scheme,
-                 kdash=(ns < 0 and not split), fwin=fw, pk=pk)
+            se = (s > 0 and ns > 0 and not pk)      # juhovýchod na 1.NP – fasádu do dvora zakrýva krčok
+            second = ns < 0 and not split           # jednotka do záhrady = druhá polovica bytu
+            names = prep if second else full
+            if se:
+                names = ("Kuchyňa\n+ jedáleň", "Obývačka", "Spálňa")
+            unit(t, s, ns, names, fill=f(k), small=scheme, kdash=second,
+                 fwin=[(5.0, 6.2)] if se else None, pk=pk, open_kitchen=se,
+                 dash_entry=(second and not scheme and not pk))
         if not split:
             ym = (YF0 + YF1) / 2
-            x0, x1 = AX + s * (HH + 0.25 + 4.0), AX + s * (HH + 0.25 + 5.2)
+            x0, x1 = AX + s * (HH + 0.25 + 4.9), AX + s * (HH + 0.25 + 6.1)
             t.rect(x0, ym - 0.135, x1, ym + 0.135, fill=(1, 1, 1), stroke=RED, lw=0.5,
                    dash=None if scheme else (1.5, 1.2))
     if pk and not scheme:
         c = (0.7, 0.1, 0.1)
         ym = (YF0 + YF1) / 2
-        t.line(EX0 - 0.8, ym, EX1 + 0.8, ym, lw=0.6, col=c, dash=(6, 2, 1, 2))
-        t.text(EX1 + 1.7, ym, "hrebeň", size=3.5, col=c)
+        t.line(EX0 - 0.8, ym + 0.4, EX1 + 0.8, ym + 0.4, lw=0.6, col=c, dash=(6, 2, 1, 2))
+        t.text(EX1 + 1.7, ym + 0.4, "hrebeň", size=3.5, col=c)
         t.rect(EX0 - 0.5, YF0 - 0.6, EX1 + 0.5, YF1 + 0.6, stroke=c, lw=0.3, dash=(3, 2))
 
 
@@ -324,19 +349,19 @@ def page_floor(c, floor, upath):
     extension(t, floor)
     pk = floor == 2
     if not pk:
-        t.text(EX0 + 4.0, YF1 + 1.2, "BYT 4 – západná polovica, 2-izbový, 70,0 m²", size=5, bold=True, col=RED)
-        t.text(EX1 - 4.0, YF1 + 1.2, "BYT 5 – východná polovica, 2-izbový, 70,0 m²", size=5, bold=True, col=RED)
-        t.text(AX + 0.2, YF0 + T + 9.6, "Spoločná\nhala\n28,9 m²", size=3.4)
+        t.text(EX0 + 4.0, YF1 + 1.2, "BYT 4 – západná polovica, 4-izbový, 104,4 m²", size=5, bold=True, col=RED)
+        t.text(EX1 - 4.0, YF1 + 1.2, "BYT 5 – východná polovica, 4-izbový, 104,4 m²", size=5, bold=True, col=RED)
+        t.text(AX - 0.1, YF0 + T + 13.5, "Spoločná\nhala\n43,4 m²", size=3.4)
         t.text(AX, YF1 + 3.2, "záhrada", size=5, col=(0.4, 0.4, 0.4))
     else:
-        t.text(AX, YF1 + 1.6, "BYT 6 – celé podkrovie, 140,0 + hala 23,7 = 163,7 m²", size=5, bold=True, col=RED)
-        t.text(AX + 0.2, YF0 + T + 9.6, "Hala\nbytu 6\n23,7 m²", size=3.4)
+        t.text(AX, YF1 + 1.6, "BYT 6 – celé podkrovie, 208,8 + hala 38,2 = 247,0 m²", size=5, bold=True, col=RED)
+        t.text(AX - 0.1, YF0 + T + 13.5, "Hala\nbytu 6\n38,2 m²", size=3.4)
     dim(t, EX0, YF1 + 2.4, EX1, YF1 + 2.4, "17 200")
     xr = EX1 + 3.6
     dim(t, xr, 20.2, xr, YF0, "4 410 krčok", size=3.5)
-    dim(t, xr, YF0, xr, YF1, "12 000")
-    dim(t, xr + 1.2, 20.2, xr + 1.2, YF1, "16 410  (prístavba s krčkom; limit 22 m)")
-    dim(t, xr + 2.4, 0, xr + 2.4, YF1, "36 650  (celková dĺžka zástavby od uličnej čiary)")
+    dim(t, xr, YF0, xr, YF1, "17 600")
+    dim(t, xr + 1.2, 20.2, xr + 1.2, YF1, "22 000  (prístavba spolu s krčkom)")
+    dim(t, xr + 2.4, 0, xr + 2.4, YF1, "42 240  (celková dĺžka zástavby od uličnej čiary)")
     t.text(5.6, 21.5, "EXISTUJÚCI DOM (NKP)\n– podľa posledného odsúhlaseného\nnávrhu, bez zmeny", size=4.5, align="l", col=(0.4, 0.2, 0.2))
     t.text(5.6, 23.6, "krčok – bez zmeny", size=4, align="l", col=(0.4, 0.2, 0.2))
 
@@ -348,19 +373,19 @@ def page_floor(c, floor, upath):
             "  Byt 1 – 1.NP predná časť, Byt 2 – 1.NP zadná časť,",
             "  Byt 3 – podkrovie, bez vikierov do ulice",
             "*Prístavba vo dvore – 3 byty:",
-            "  Byt 4 – 1.NP západ, 2-izb. + 2 kúp. .... 70,0 m²",
-            "  Byt 5 – 1.NP východ, 2-izb. + 2 kúp. ... 70,0 m²",
-            "  Byt 6 – podkrovie ....................... 163,7 m²",
-            "  Spoločná vstupná hala so schodiskom ... 28,9 m²",
+            "  Byt 4 – 1.NP západ, 4-izb. ............ 104,4 m²",
+            "  Byt 5 – 1.NP východ, 4-izb. ........... 104,4 m²",
+            "  Byt 6 – podkrovie ....................... 247,0 m²",
+            "  Spoločná vstupná hala so schodiskom ... 43,4 m²",
             "*Spolu 6 bytov (výhľadovo 9).",
         ])
         y = panel(c, x, y, "PRÍSTAVBA – ZÁKLADNÉ ÚDAJE", [
-            "*Jednoduchý obdĺžnik 17,2 × 12,0 m, jedna sedlová strecha.",
-            "Zastavaná plocha 206,4 m². Šírka 17,2 m ako v odsúhlasenom",
+            "*Jednoduchý obdĺžnik 17,2 × 17,6 m, jedna sedlová strecha.",
+            "Zastavaná plocha 302,7 m². Šírka 17,2 m ako v odsúhlasenom",
             "návrhu, hrebeň kolmo na os pozemku (ako doteraz).",
-            "Dĺžka s krčkom 16,41 m – pod limitom 22 m.",
-            "Strecha: rozpon 12,0 m, sklon 35–38°, nadmurovka",
-            "do 0,8 m, hrebeň cca 8,0–8,5 m nad terénom; bez úžľabí,",
+            "*Dĺžka s krčkom presne 22,0 m (krčok 4,41 + dom 17,6).",
+            "Strecha: rozpon 17,6 m, sklon cca 30°, nadmurovka",
+            "do 0,6 m, hrebeň cca 8,7 m nad terénom; bez úžľabí,",
             "len vikiere. 2. podlažie je podkrovie.",
             "Vstup spredu z dvora v osi fasády, schodisko do podkrovia",
             "hneď vo vstupnej hale.",
@@ -372,7 +397,7 @@ def page_floor(c, floor, upath):
             "do dvora, žiadne vikiere do ulice.",
             "*Prístavba: Byt 6 = celé podkrovie, prístup schodiskom",
             "zo vstupnej haly.",
-            "Jedna sedlová strecha, hrebeň v strede hĺbky domu.",
+            "Jedna sedlová strecha (rozpon 17,6 m), hrebeň v strede hĺbky.",
             "Presvetlenie: vikiere do dvora a do záhrady + okná v štítoch.",
             "Dispozícia je zhodná s 1.NP – šachty, kúpeľne a kuchyne",
             "sú nad sebou.",
@@ -380,10 +405,10 @@ def page_floor(c, floor, upath):
             "nad 1,3 m) bude po spresnení krovu nižšia cca o 8–10 %.",
         ])
     y = panel(c, x, y, "PRÍPRAVA NA DELENIE (3 → 6 bytov)", [
-        "Podlažie tvoria 4 rovnaké jednotky po 35,0 m² (2 do dvora,",
-        "2 do záhrady). Každá má vlastnú šachtu (Š), kúpeľňu,",
-        "kuchynské vývody a dvere z haly.",
-        "Na povolenie: jednotka do dvora + do záhrady = 1 byt 70 m².",
+        "Podlažie tvoria 4 jednotky po 52,2 m² (2 do dvora,",
+        "2 do záhrady) – každá je 2-izbový byt: obývačka, spálňa,",
+        "samostatná kuchyňa, kúpeľňa, WC, vlastná šachta (Š).",
+        "Na povolenie: jednotka do dvora + do záhrady = 1 byt 104 m².",
         "Červený čiarkovaný otvor – prepojenie dvoch jednotiek;",
         "pri delení sa zamuruje.",
         "Červené čiarkované dvere – pripravený 2. vstup z haly",
@@ -409,30 +434,30 @@ def page_scheme(c):
     W, H = A3
     sc = 72 / 25.4 * 1000 / 150
     for i, floor in enumerate((1, 2)):
-        t = Tr(c, 45 + i * 385, H - 70 - 15.5 * sc, sc, EX0 - 0.8, YF0 - 1.6)
+        t = Tr(c, 45 + i * 385, H - 70 - 21 * sc, sc, EX0 - 0.8, YF0 - 1.6)
         extension(t, floor, scheme=True)
         t.text(AX, YF1 + 1.3, "1.NP – 4 byty" if floor == 1 else "PODKROVIE – 2 byty", size=10, bold=True)
-        xw, xe = EX0 + 3.0, EX1 - 3.0
+        xw, xe = EX0 + 2.5, EX1 - 2.5
         if floor == 1:
-            for (xx, yy, n) in ((xw, YF0 + 3.0, "A1"), (xe, YF0 + 3.0, "A2"), (xw, YF1 - 3.0, "B1"), (xe, YF1 - 3.0, "B2")):
-                t.text(xx, yy, f"BYT {n}\n1-izb. 35,0 m²", size=7, bold=True)
+            for (xx, yy, n) in ((xw, YF0 + 2.4, "A1"), (xe, YF0 + 2.4, "A2"), (xw, YF1 - 2.4, "B1"), (xe, YF1 - 2.4, "B2")):
+                t.text(xx, yy, f"BYT {n}\n2-izb. 52,2 m²", size=7, bold=True)
         else:
-            t.text(xw, YF0 + 3.0, "BYT PA\n2-izb. 70,0 m²", size=7, bold=True)
-            t.text(xe, YF0 + 3.0, "BYT PB\n2-izb. 70,0 m²", size=7, bold=True)
+            t.text(xw, YF0 + 2.4, "BYT PA\n4-izb. 104,4 m²", size=7, bold=True)
+            t.text(xe, YF0 + 2.4, "BYT PB\n4-izb. 104,4 m²", size=7, bold=True)
     c.setFont("FB", 13)
     c.setFillColorRGB(0, 0, 0)
     c.drawString(40, H - 45, "SCHÉMA BUDÚCEHO DELENIA PRÍSTAVBY: 3 BYTY → 6 BYTOV   (M 1:150)")
-    y0 = H - 70 - 15.5 * sc - 25
+    y0 = H - 70 - 21 * sc - 25
     xa, xb = 40, 440
     ya = panel(c, xa, y0, "ČO SA PRI DELENÍ UROBÍ (bez zásahu do nosných konštrukcií a fasád)", [
-        "*1.NP – z bytov 4 a 5 vzniknú 4 jednoizbové byty po 35,0 m² (A1, A2, B1, B2):",
-        "  1. Zamurovať prepojovací otvor (1,2 m) v stene medzi jednotkou do dvora a do záhrady –",
+        "*1.NP – z bytov 4 a 5 vzniknú 4 dvojizbové byty po 52,2 m² (A1, A2, B1, B2):",
+        "  1. Zamurovať prepojovací otvor (1,2 m) v strednej stene medzi kuchyňou a izbou/jedálňou –",
         "     stena je od začiatku navrhnutá ako medzibytová (Rw ≥ 53 dB, EI 30).",
         "  2. Osadiť vstupné dvere do pripraveného prekladu 2. vstupu z haly.",
-        "  3. V jednotke do záhrady osadiť kuchynskú linku na pripravené vývody.",
-        "*Podkrovie – z bytu 6 vzniknú 2 byty po 70,0 m² (PA, PB):",
+        "  3. V jednotke do záhrady osadiť v izbe/jedálni kuchynskú linku na pripravené vývody.",
+        "*Podkrovie – z bytu 6 vzniknú 2 byty po 104,4 m² (PA, PB):",
         "  4. Hala v podkroví sa stane spoločnou chodbou, každá polovica má už svoje vstupné dvere.",
-        "  5. Podkrovie sa dá deliť aj ďalej rovnako ako 1.NP (2 + 2 byty).",
+        "  5. Podkrovie sa dá deliť aj ďalej rovnako ako 1.NP (4 dvojizbové byty).",
         "*Administratívne: zmena počtu bytov = zmena stavby / zmena v užívaní; treba doložiť",
         "  parkovacie státia pre nové byty (STN 73 6110).",
     ])
@@ -456,8 +481,8 @@ def page_scheme(c):
     ])
     y = min(ya, yb)
     y = panel(c, xa, y, "BILANCIA", [
-        "*Povoľovaný stav:  predný dom 3 byty  +  prístavba 3 byty (70,0 + 70,0 + 163,7 m²)  =  6 bytov",
-        "*Po rozdelení:       predný dom 3 byty  +  prístavba 6 bytov (4 × 35,0 + 2 × 70,0 m²)  =  9 bytov   (max. 11 pri delení podkrovia)",
+        "*Povoľovaný stav:  predný dom 3 byty  +  prístavba 3 byty (104,4 + 104,4 + 247,0 m²)  =  6 bytov",
+        "*Po rozdelení:       predný dom 3 byty  +  prístavba 6 bytov (4 × 52,2 + 2 × 104,4 m²)  =  9 bytov   (max. 11 pri delení podkrovia)",
     ])
     lx, ly = 40, y - 5
     for k, n in (("A1", "byt A1"), ("A2", "byt A2"), ("B1", "byt B1"), ("B2", "byt B2"),
