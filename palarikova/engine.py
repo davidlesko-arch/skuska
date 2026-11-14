@@ -21,6 +21,11 @@ C = dict(
     t1=HexColor("#dce9f5"), t2=HexColor("#e2efda"), t3=HexColor("#fbe9d0"),
     t4=HexColor("#e9e1f3"), nb=HexColor("#d6eeee"), furn=HexColor("#6b7785"),
     win=HexColor("#2f79b5"),
+    a1=HexColor("#fdebd3"), b1=HexColor("#f4bd7c"),   # byt .01
+    a2=HexColor("#ece5f6"), b2=HexColor("#c3aae3"),   # byt .02
+    a4=HexColor("#deebf7"), b4=HexColor("#9dc3e8"),   # byt .04
+    a5=HexColor("#fbe4e7"), b5=HexColor("#eea3ae"),   # byt .05 / .06
+    n1=HexColor("#e2efda"), n2=HexColor("#d5ece6"),   # byty bez delenia
 )
 TYPCOL = {"1": "t1", "2": "t2", "3": "t3", "4": "t4", "nb": "nb"}
 
@@ -34,7 +39,8 @@ def area(rects):
 
 
 class Room:
-    def __init__(self, name, rects, lab=None, small=False, hide=False):
+    def __init__(self, name, rects, lab=None, small=False, hide=False, col=None):
+        self.col = col
         self.name = name
         self.rects = rects if isinstance(rects, list) else [rects]
         self.lab = lab
@@ -50,6 +56,7 @@ class Flat:
     def __init__(self, fid, typ, tname, rooms, ext="–", note="", head=None, count=True):
         self.id, self.typ, self.tname, self.rooms = fid, typ, tname, rooms
         self.ext, self.note, self.head, self.count = ext, note, head, count
+        self.col = None
 
     @property
     def a(self):
@@ -120,19 +127,34 @@ class Plan:
             for i in range(2):
                 c.circle(self.X(cx), self.Y(y2 - 0.25 - i * 0.3), 0.1 * 10 * MM, fill=0)
 
-    def f_bed(self, c, b):
+    def f_bed(self, c, b, head="L"):
+        """Posteľ; head = strana, kde je čelo (L/R/T/B) – má byť pri stene."""
         self.rect(c, b, fill=white, stroke=C["furn"], lw=0.35)
         x1, y1, x2, y2 = b
-        if (x2 - x1) >= (y2 - y1):  # hlava vľavo
+        if head in "LR":
             n = 2 if (y2 - y1) > 1.3 else 1
             h = (y2 - y1) / n
             for i in range(n):
-                self.rect(c, r(x1 + 0.08, y1 + i * h + 0.1, x1 + 0.45, y1 + (i + 1) * h - 0.1), stroke=C["furn"])
-        else:  # hlava hore
+                xa, xb = (x1 + 0.08, x1 + 0.45) if head == "L" else (x2 - 0.45, x2 - 0.08)
+                self.rect(c, r(xa, y1 + i * h + 0.1, xb, y1 + (i + 1) * h - 0.1), stroke=C["furn"])
+        else:
             n = 2 if (x2 - x1) > 1.3 else 1
             w = (x2 - x1) / n
             for i in range(n):
-                self.rect(c, r(x1 + i * w + 0.1, y1 + 0.08, x1 + (i + 1) * w - 0.1, y1 + 0.45), stroke=C["furn"])
+                ya, yb = (y1 + 0.08, y1 + 0.45) if head == "T" else (y2 - 0.45, y2 - 0.08)
+                self.rect(c, r(x1 + i * w + 0.1, ya, x1 + (i + 1) * w - 0.1, yb), stroke=C["furn"])
+
+    def f_bedL(self, c, b):
+        self.f_bed(c, b, "L")
+
+    def f_bedR(self, c, b):
+        self.f_bed(c, b, "R")
+
+    def f_bedT(self, c, b):
+        self.f_bed(c, b, "T")
+
+    def f_bedB(self, c, b):
+        self.f_bed(c, b, "B")
 
     def f_box(self, c, b):
         self.rect(c, b, fill=white, stroke=C["furn"], lw=0.35)
@@ -273,7 +295,7 @@ class Plan:
         for f in self.flats:
             for rm in f.rooms:
                 for b in rm.rects:
-                    self.rect(c, b, fill=C[TYPCOL[f.typ]])
+                    self.rect(c, b, fill=C[rm.col or f.col or TYPCOL[f.typ]])
         for kind, b in self.furn:
             getattr(self, "f_" + kind)(c, b)
         for b in self.part:
@@ -432,6 +454,13 @@ def legend(c, items, x=14, y=62, title="LEGENDA"):
             c.setStrokeColor(HexColor("#888888"))
             c.setLineWidth(0.3)
             c.rect(x * MM, (y - 0.8) * MM, 7 * MM, 3.2 * MM, fill=1, stroke=1)
+        elif kind == "two":
+            c.setStrokeColor(HexColor("#888888"))
+            c.setLineWidth(0.3)
+            c.setFillColor(C[col[0]])
+            c.rect(x * MM, (y - 0.8) * MM, 3.5 * MM, 3.2 * MM, fill=1, stroke=1)
+            c.setFillColor(C[col[1]])
+            c.rect((x + 3.5) * MM, (y - 0.8) * MM, 3.5 * MM, 3.2 * MM, fill=1, stroke=1)
         elif kind == "dash":
             c.setStrokeColor(C[col])
             c.setLineWidth(1.1)
