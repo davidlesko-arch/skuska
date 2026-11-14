@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
-"""BD Palárikova – variant C (rev. 2): 18 bytov (16 + 2 na ustúpenom 4.NP), výťah, jednotka v 1.PP.
+"""BD Palárikova – variant C (rev. 3): 18 bytov (16 + 2 na ustúpenom 4.NP), výťah, jednotka v 1.PP.
 Súradnice v metroch: x = pozdĺž domu (0 = JZ štít), y = 0 fasáda k parkovisku, y rastie do záhrady."""
 import sys
 from engine import *
 
-OUT = sys.argv[1] if len(sys.argv) > 1 else "BD_Palarikova_variant_C_rev2_2026-11-14.pdf"
+OUT = sys.argv[1] if len(sys.argv) > 1 else "BD_Palarikova_variant_C_rev3_2026-11-14.pdf"
 SUB = "18 bytov: 1.NP 5 + 2.NP 5 + 3.NP 6 + ustúpené 4.NP 2 · výťah 1.PP–4.NP · nebytový priestor (1-izb.) v 1.PP · fasáda 1.–3.NP bez zmeny"
-TOTAL = 8
+TOTAL = 9
 ZAST = 467.0  # zastavaná plocha podľa PD
 
 WIN_P = [(0.8, 2.8), (3.5, 5.5), (9.5, 11.5), (12.725, 14.725), (15.5, 17.5),
@@ -453,164 +453,263 @@ def plan_pp(p):
 
 
 # =====================================================================
-#  4.NP – ustúpené podlažie, dva varianty
-#  V1: krídlo s bočnou terasou + átriová terasa pred chodbou
-#  V2: krídlo lícuje so štítom, vpredu priebežná terasa od štítu po obývačku
+#  4.NP – ustúpené podlažie, tri varianty (celá strecha = terasy bytov)
+#  V1: krídlo izieb – chodba popri schodisku s terasou vpredu – výbežok obývačky
+#  V2: bez chodby – obývačky oboch bytov vedľa seba v strede
+#  V3: jeden veľký byt
 # =====================================================================
-VAR = {1: dict(x1=21.8), 2: dict(x1=21.0)}
+VAR = {1: dict(x1=21.1), 2: dict(x1=19.0), 3: dict(x1=27.15)}
+WING = (0, 2.9, 5.85, 13.22)
+YS3 = 3.4
 
 
 def gross_rects(v):
     x1 = VAR[v]["x1"]
-    base = [(5.85, 3.574, 16.6, 6.574), (10.9, 1.0, 16.6, 3.574), (5.85, 6.574, x1, 15.048), (16.6, 6.374, x1, 6.574)]
     if v == 1:
-        return [(1.5, 2.0, 6.3, 3.574), (1.5, 3.574, 5.85, 13.22)] + base
-    return [(0, 3.574, 5.85, 13.22)] + base
+        return [WING, (5.85, 2.9, 6.3, 4.674), (5.85, 4.674, 10.9, 6.574), (10.9, 1.0, 16.6, 6.574),
+                (5.85, 6.574, x1, 15.048), (16.6, 6.374, x1, 6.574)]
+    if v == 2:
+        return [WING, (5.7, 1.0, 16.6, 2.9), (5.85, 2.9, 16.6, 6.574), (5.85, 6.574, x1, 15.048), (16.6, 6.374, x1, 6.574)]
+    return [(5.85, 6.574, 10.7, 15.048), (10.7, YS3, x1, 15.048)]
 
 
 def gross_4np(v):
     return area(gross_rects(v))
 
 
-def plan_4np(p, v):
-    x1 = VAR[v]["x1"]
-    xr = x1 - 0.4
-    S, N = p.struct, p.new
-    # ---- terasy / strecha 3.NP ----
-    if v == 1:
-        ta = [r(0.3, 0.3, 1.5, 12.92), r(1.5, 0.3, 10.9, 2.0), r(6.3, 2.0, 10.9, 3.574)]
-        p.terr += [("Terasa", ta[0], "terr"), ("Terasa B4.01", ta[1], "terr"), ("Átriová terasa", ta[2], "terr")]
-    else:
-        ta = [r(0.3, 0.3, 10.9, 3.574)]
-        p.terr += [("Terasa B4.01 – priebežná od štítu po obývačku", ta[0], "terr")]
-    tb = [r(16.6, 0.3, x1, 6.374), r(x1, 0.3, 26.0, 14.748)]
-    p.terr += [("Terasa B4.02", tb[0], "terr"), ("Terasa B4.02", tb[1], "terr"),
-               ("", r(10.9, 0.3, 16.6, 1.0), "green"),
-               ("Vegetačná strecha / FVE / technológie (VZT, TČ)", r(26.0, 0.3, 32.9, 12.92), "green"),
-               ("", r(26.0, 12.92, 27.0, 14.748), "green")]
-    S += [r(0, 0, 33.2, 0.3), r(0, 0, 0.3, 13.22 if v == 1 else 3.574), r(32.9, 0, 33.2, 13.22),
-          r(27.0, 12.92, 33.2, 13.22), r(27.0, 12.92, 27.3, 15.048), r(x1, 14.748, 27.3, 15.048)]
-    if v == 1:
-        S.append(r(0, 12.92, 1.5, 13.22))
-    # ---- nové nosné / obvodové steny ----
-    N += [r(5.9, 6.574, 16.6, 6.774), r(16.2, 6.374, x1, 6.774),
-          r(10.9, 1.0, 11.3, 3.974), r(10.9, 1.0, 16.6, 1.4), r(16.2, 1.0, 16.6, 6.774),
-          r(5.9, 6.574, 6.1, 12.82), r(5.7, 12.82, 6.1, 15.048), r(5.7, 14.648, x1, 15.048), r(xr, 6.374, x1, 15.048),
-          r(8.9, 8.474, 9.1, 14.648), r(10.9, 6.774, 11.1, 10.424), r(9.1, 10.224, 11.1, 10.424)]
-    if v == 1:
-        N += [r(1.5, 2.0, 6.3, 2.4), r(1.5, 2.0, 1.9, 13.22), r(1.5, 12.82, 6.1, 13.22), r(5.9, 2.0, 6.3, 3.974),
-              r(5.9, 3.574, 11.3, 3.974)]
-    else:
-        N += [r(0, 3.574, 0.4, 13.22), r(0, 12.82, 6.1, 13.22), r(0, 3.574, 11.3, 3.974)]
+def core4(p, x1):
+    p.new += [r(5.9, 6.574, 6.1, 12.82), r(5.7, 12.82, 6.1, 15.048), r(5.7, 14.648, x1, 15.048),
+              r(8.9, 8.474, 9.1, 14.648), r(10.9, 6.774, 11.1, 10.424), r(9.1, 10.224, 11.1, 10.424)]
+    p.struct += [r(0, 0, 33.2, 0.3), r(32.9, 0, 33.2, 13.22), r(27.0, 12.92, 33.2, 13.22)]
+    if x1 < 27.0:
+        p.struct += [r(27.0, 12.92, 27.3, 15.048), r(x1, 14.748, 27.3, 15.048)]
     lift(p)
     p.extra.append(stairs)
     p.common.append(("Chodba pred výťahom", [r(6.1, 6.774, 10.9, 8.274)]))
     p.fills.append(([r(6.1, 8.274, 8.9, 14.648)], C["common"]))
+    p.windows.append(r(6.5, 14.7, 8.5, 15.0))
+
+
+def wing4(p, z, hall_to_living):
+    """Ľavé krídlo B4.01: izba 1, izba 2, spoločná kúpeľňa s WC a spálňa so šatníkom a vlastnou kúpeľňou."""
+    p.new += [r(0, 2.9, 0.4, 13.22), r(0, 2.9, 6.1, 3.3), r(0, 12.82, 6.1, 13.22)]
+    p.struct.append(r(0, 0, 0.3, 2.9))
+    z.part(r(3.8, 3.3, 3.9, 5.074), r(3.9, 4.974, 5.9, 5.074), r(4.6, 5.074, 4.7, 9.0), r(0.4, 6.2, 4.6, 6.3),
+           r(0.4, 9.0, 5.9, 9.1), r(3.9, 9.1, 4.0, 12.82), r(4.0, 10.6, 5.9, 10.7), new=True)
+    z.door(r(4.9, 4.974, 5.7, 5.074), "r", -1)       # kúpeľňa – krídlo k stene
+    z.door(r(4.6, 5.3, 4.7, 6.1), "b", -1)           # izba 1 – k priečke
+    z.door(r(4.6, 6.4, 4.7, 7.2), "t", -1)           # izba 2 – k priečke
+    z.door(r(4.9, 9.0, 5.7, 9.1), "r", 1)            # šatník spálne – k stene
+    z.door(r(3.9, 9.3, 4.0, 10.3), None, 0, C["t4"])  # šatník → spálňa (priechod)
+    z.door(r(4.3, 10.6, 5.1, 10.7), "l", 1)          # kúpeľňa spálne – k priečke
+    z.bath(sh=r(3.95, 3.35, 4.85, 4.25), wc=r(5.3, 3.4, 5.85, 3.8), bs=r(4.0, 4.45, 4.6, 4.9))
+    z.bath(sh=r(4.95, 11.9, 5.85, 12.77), wc=r(5.3, 11.0, 5.85, 11.4), bs=r(4.05, 12.2, 4.5, 12.75))
+    z.furn("bedL", r(0.5, 4.3, 2.5, 5.2))
+    z.furn("bedL", r(0.5, 7.2, 2.5, 8.1))
+    z.furn("bedL", r(0.5, 10.2, 2.5, 11.8))
+    z.furn("box", r(4.05, 9.15, 4.6, 10.5))
+    p.windows += [r(0.9, 2.95, 3.3, 3.25), r(4.4, 2.95, 5.4, 3.25), r(0.05, 3.9, 0.35, 5.5), r(0.05, 6.8, 0.35, 8.5),
+                  r(0.05, 9.8, 0.35, 11.8), r(1.0, 12.87, 3.4, 13.17), r(4.5, 12.87, 5.5, 13.17)]
+    return [("Izba 1", [r(0.4, 3.3, 3.8, 6.2), r(3.8, 5.074, 4.6, 6.2)], dict(lab=(2.9, 3.9))),
+            ("Izba 2", r(0.4, 6.3, 4.6, 9.0), dict(lab=(3.5, 7.2))),
+            ("Kúpeľňa + WC", r(3.9, 3.3, 5.9, 4.974), dict(small=True, lab=(5.25, 4.6))),
+            ("Spálňa", r(0.4, 9.1, 3.9, 12.82), dict(lab=(3.0, 10.9))),
+            ("Šatník", r(4.0, 9.1, 5.9, 10.6), dict(small=True, lab=(5.25, 9.9))),
+            ("Kúpeľňa + WC", r(4.0, 10.7, 5.9, 12.82), dict(small=True, lab=(4.9, 11.6)))]
+
+
+def suite_b(z):
+    """Spálňa B4.02 so šatníkom a vlastnou kúpeľňou za výťahom."""
+    z.part(r(11.0, 10.424, 11.1, 14.648), r(9.1, 12.0, 11.0, 12.1), new=True)
+    z.door(r(11.0, 10.7, 11.1, 11.7), None, 0, C["t4"])   # spálňa → šatník
+    z.door(r(9.3, 12.0, 10.1, 12.1), "l", 1)              # kúpeľňa – k stene
+    z.bath(tub=r(9.15, 13.85, 10.95, 14.6), wc=r(10.4, 12.4, 10.95, 12.8), bs=r(10.3, 13.15, 10.9, 13.6))
+    z.furn("box", r(9.15, 10.5, 9.7, 11.9))
+    return [("Šatník", r(9.1, 10.424, 11.0, 12.0), dict(small=True, lab=(10.4, 11.2))),
+            ("Kúpeľňa + WC", r(9.1, 12.1, 11.0, 14.648), dict(small=True, lab=(9.8, 13.1)))]
+
+
+def plan_4np(p, v):
+    x1 = VAR[v]["x1"]
+    xr = x1 - 0.4
+    N, W = p.new, p.windows
     z = Zone(p)
-    W = p.windows
-    # =============== B4.01 ===============
-    living = ("Obývacia izba + kuchyňa", r(11.3, 1.4, 16.2, 6.574), dict(lab=(13.4, 4.95)))
-    z.furn("kitchen", r(15.6, 1.8, 16.2, 5.2))
-    z.furn("table", r(12.3, 2.3, 13.9, 3.1))
-    z.furn("box", r(12.2, 5.65, 14.6, 6.5))            # sedačka pri zadnej stene
-    W += [r(11.9, 1.05, 15.6, 1.35), r(10.95, 1.7, 11.25, 3.5)]
-    z.door(r(8.6, 6.574, 9.5, 6.774), "r", -1)         # vstup do bytu z chodby pred výťahom
+    core4(p, x1)
+    if v == 3:
+        return plan_4np_single(p, z, x1, xr)
+    A = wing4(p, z, v == 1)
+    N += [r(5.9, 6.574, 16.6, 6.774), r(16.2, 6.374, x1, 6.774), r(xr, 6.374, x1, 15.048), r(16.2, 1.0, 16.6, 6.774)]
+    z.door(r(10.9, 6.95, 11.1, 7.85), "t", 1)              # vstup B4.02 – krídlo k stene
     if v == 1:
-        z.part(r(1.9, 5.4, 5.9, 5.5), r(4.6, 5.5, 4.7, 9.3), r(1.9, 9.3, 5.9, 9.4), r(5.9, 3.974, 6.0, 5.374),
-               r(6.0, 5.274, 11.3, 5.374), r(9.0, 3.974, 9.1, 5.274), r(11.2, 3.974, 11.3, 5.374), new=True)
-        z.door(r(4.9, 5.4, 5.7, 5.5), "r", -1)         # izba 1 – k stene
-        z.door(r(4.6, 5.55, 4.7, 6.35), "t", -1)       # izba 2 – k stene
-        z.door(r(4.9, 9.3, 5.7, 9.4), "r", 1)          # spálňa – k stene
-        z.door(r(6.2, 5.274, 7.0, 5.374), "l", -1)     # kúpeľňa – k stene
-        z.door(r(9.3, 5.274, 10.1, 5.374), "l", -1)    # WC – k stene
-        z.bath(sh=r(8.05, 4.0, 8.95, 4.9), wc=r(7.3, 4.0, 7.7, 4.55), bs=r(6.5, 4.0, 7.1, 4.45))
-        z.bath(wc=r(10.7, 4.0, 11.15, 4.55), bs=r(10.0, 4.0, 10.6, 4.45), box=r(10.55, 4.65, 11.15, 5.25))
-        z.furn("bedL", r(2.0, 3.0, 4.0, 4.6))
-        z.furn("bedL", r(2.0, 7.2, 4.0, 8.1))
-        z.furn("box", r(2.0, 5.6, 4.5, 6.2))
-        z.furn("bedL", r(2.0, 10.3, 4.0, 11.9))
-        z.furn("box", r(2.6, 12.2, 5.8, 12.75))
-        W += [r(2.5, 2.05, 5.3, 2.35), r(1.55, 3.0, 1.85, 4.8), r(5.95, 2.6, 6.25, 3.5), r(1.55, 6.6, 1.85, 8.6),
-              r(1.55, 10.0, 1.85, 12.0), r(6.5, 3.62, 7.5, 3.92), r(9.7, 3.62, 10.5, 3.92)]
-        A = z.rooms([living,
-                     ("Izba 1", r(1.9, 2.4, 5.9, 5.4), dict(lab=(4.9, 3.6))),
-                     ("Izba 2", r(1.9, 5.5, 4.6, 9.3), dict(lab=(3.3, 6.8))),
-                     ("Spálňa", r(1.9, 9.4, 5.9, 12.82), dict(lab=(4.9, 10.8))),
-                     ("Chodba", [r(5.9, 5.374, 11.3, 6.574), r(4.7, 5.5, 5.9, 9.3)], dict(lab=(7.6, 5.95), small=True)),
-                     ("Kúpeľňa", r(6.0, 3.974, 9.0, 5.274), dict(small=True, lab=(7.6, 5.0))),
-                     ("WC + práčka", r(9.1, 3.974, 11.2, 5.274), dict(small=True, lab=(9.75, 4.95)))])
+        # ---------- B4.01: chodba popri schodisku + výbežok obývačky ----------
+        N += [r(5.9, 2.9, 6.3, 5.074), r(5.9, 4.674, 11.3, 5.074), r(10.9, 1.0, 11.3, 5.074), r(10.9, 1.0, 16.6, 1.4)]
+        z.door(r(8.6, 6.574, 9.5, 6.774), "r", -1)         # vstup B4.01
+        W += [r(6.8, 4.724, 10.4, 5.024), r(11.9, 1.05, 15.6, 1.35), r(10.95, 1.7, 11.25, 3.9)]
+        z.furn("kitchen", r(15.6, 1.8, 16.2, 5.2))
+        z.furn("table", r(12.3, 2.3, 13.9, 3.1))
+        z.furn("box", r(12.2, 5.65, 14.6, 6.5))
+        A = [("Obývacia izba + kuchyňa", r(11.3, 1.4, 16.2, 6.574), dict(lab=(13.4, 4.95))),
+             ("Chodba", [r(5.9, 5.074, 11.3, 6.574), r(4.7, 5.074, 5.9, 9.0)], dict(lab=(7.4, 5.75), small=True))] + A
+        ta = [r(0.3, 0.3, 10.9, 2.9), r(6.3, 2.9, 10.9, 4.674), r(10.9, 0.3, 16.6, 1.0)]
+        p.terr += [("Terasa B4.01", ta[0], "terr"), ("Terasa pri schodisku", ta[1], "terr"), ("", ta[2], "terr")]
+        hA = (13.3, 3.95)
+        # ---------- B4.02 ----------
+        z.part(r(12.5, 6.774, 12.6, 8.4), r(12.5, 8.4, 14.8, 8.5), r(14.7, 6.774, 14.8, 9.6), r(11.1, 9.6, 16.7, 9.7),
+               r(13.7, 9.7, 13.8, 14.648), r(16.6, 9.6, 16.7, 14.648), r(16.7, 11.7, xr, 11.8), new=True)
+        z.door(r(12.7, 8.4, 13.5, 8.5), "l", -1)
+        z.door(r(11.2, 9.6, 12.0, 9.7), "l", 1)
+        z.door(r(13.85, 9.6, 14.65, 9.7), "l", 1)
+        z.door(r(16.8, 11.7, 17.6, 11.8), "l", 1)
+        z.door(r(14.7, 8.6, 14.8, 9.5), None, 0, C["t4"])
+        p.doors.append((r(11.1, 8.4, 12.5, 8.5), None, 0, C["t4"]))
+        z.bath(sh=r(13.75, 6.82, 14.65, 7.72), wc=r(13.0, 6.85, 13.4, 7.4), bs=r(13.9, 7.9, 14.5, 8.35))
+        z.furn("kitchen", r(14.9, 6.83, 17.3, 7.43))
+        z.furn("table", r(17.9, 9.0, 19.5, 9.8))
+        z.furn("box", r(17.0, 10.95, 19.4, 11.6))
+        z.furn("bedL", r(11.2, 11.6, 13.2, 13.2))
+        z.furn("bedL", r(13.9, 11.6, 15.9, 12.5))
+        z.furn("bedL", r(16.8, 12.6, 18.8, 13.5))
+        W += [r(17.7, 6.424, xr - 0.3, 6.724), r(x1 - 0.35, 7.4, x1 - 0.05, 11.2), r(x1 - 0.35, 12.3, x1 - 0.05, 14.0),
+              r(18.8, 14.7, xr - 0.2, 15.0), r(14.4, 14.7, 16.2, 15.0), r(11.6, 14.7, 13.3, 15.0), r(9.5, 14.7, 10.6, 15.0)]
+        B = [("Obývacia izba + kuchyňa", [r(14.8, 6.774, xr, 9.6), r(16.7, 9.6, xr, 11.7)], dict(lab=(15.9, 8.6))),
+             ("Predsieň", r(11.1, 6.774, 12.5, 8.5), dict(small=True, lab=(11.8, 8.0))),
+             ("Kúp. + WC", r(12.6, 6.774, 14.7, 8.4), dict(small=True, lab=(13.45, 7.75))),
+             ("Chodba", r(11.1, 8.5, 14.7, 9.6), dict(small=True, lab=(13.0, 9.05))),
+             ("Spálňa", r(11.1, 9.7, 13.7, 14.648), dict(lab=(12.4, 10.6))),
+             ("Izba 2", r(13.8, 9.7, 16.6, 14.648), dict(lab=(15.2, 10.6))),
+             ("Izba 3", r(16.7, 11.8, xr, 14.648), dict(lab=(19.7, 13.0)))] + suite_b(z)
+        tb = [r(16.6, 0.3, x1, 6.374), r(x1, 0.3, 32.9, 12.92), r(x1, 12.92, 27.0, 14.748)]
+        p.terr += [("Terasa B4.02", tb[0], "terr"), ("Terasa B4.02", tb[1], "terr"), ("", tb[2], "terr")]
+        hB = (18.9, 7.95)
+        tubs = [(8.6, 0.6, 10.6, 2.6), (18.0, 1.0, 20.2, 3.2)]
+        split_x = 16.6
+        dims = [0, 10.9, 16.6, x1, 33.2]
     else:
-        z.part(r(4.6, 3.974, 4.7, 9.7), r(0.4, 6.8, 4.6, 6.9), r(0.4, 9.7, 5.9, 9.8),
-               r(4.7, 5.274, 11.3, 5.374), r(8.0, 3.974, 8.1, 5.274), r(11.2, 3.974, 11.3, 5.374), new=True)
-        z.door(r(4.6, 5.95, 4.7, 6.75), "b", -1)       # izba 1 – k priečke
-        z.door(r(4.6, 6.95, 4.7, 7.75), "t", -1)       # izba 2 – k priečke
-        z.door(r(4.9, 9.7, 5.7, 9.8), "r", 1)          # spálňa – k stene
-        z.door(r(4.9, 5.274, 5.7, 5.374), "l", -1)     # kúpeľňa – k stene
-        z.door(r(8.3, 5.274, 9.1, 5.374), "l", -1)     # WC – k stene
-        z.bath(sh=r(7.05, 4.0, 7.95, 4.9), wc=r(6.3, 4.0, 6.7, 4.55), bs=r(5.4, 4.0, 6.0, 4.45))
-        z.bath(wc=r(10.7, 4.0, 11.15, 4.55), bs=r(10.0, 4.0, 10.6, 4.45), box=r(10.55, 4.65, 11.15, 5.25))
-        z.furn("bedL", r(0.5, 4.4, 2.5, 6.0))
-        z.furn("bedL", r(0.5, 7.6, 2.5, 8.5))
-        z.furn("box", r(0.5, 9.05, 3.0, 9.65))
-        z.furn("bedL", r(0.5, 10.5, 2.5, 12.1))
-        z.furn("box", r(3.4, 12.2, 5.8, 12.75))
-        W += [r(1.0, 3.624, 3.8, 3.924), r(0.05, 4.4, 0.35, 6.0), r(0.05, 7.4, 0.35, 9.0), r(0.05, 10.4, 0.35, 12.2),
-              r(1.5, 12.87, 4.5, 13.17), r(5.4, 3.62, 6.4, 3.92), r(9.2, 3.62, 10.0, 3.92)]
-        A = z.rooms([living,
-                     ("Izba 1", r(0.4, 3.974, 4.6, 6.8), dict(lab=(3.5, 4.9))),
-                     ("Izba 2", r(0.4, 6.9, 4.6, 9.7), dict(lab=(3.6, 8.0))),
-                     ("Spálňa", r(0.4, 9.8, 5.9, 12.82), dict(lab=(4.0, 11.1))),
-                     ("Chodba", [r(4.7, 5.374, 11.3, 6.574), r(4.7, 6.574, 5.9, 9.7)], dict(lab=(7.0, 5.95), small=True)),
-                     ("Kúpeľňa", r(4.7, 3.974, 8.0, 5.274), dict(small=True, lab=(6.5, 5.0))),
-                     ("WC + práčka", r(8.1, 3.974, 11.2, 5.274), dict(small=True, lab=(9.4, 4.95)))])
-    # =============== B4.02 ===============
-    z.part(r(12.5, 6.774, 12.6, 8.4), r(12.5, 8.4, 14.8, 8.5), r(14.7, 6.774, 14.8, 9.6), r(11.1, 9.6, 16.7, 9.7),
-           r(13.7, 9.7, 13.8, 14.648), r(16.6, 9.6, 16.7, 14.648), r(16.7, 11.7, xr, 11.8), r(11.0, 10.424, 11.1, 14.648), new=True)
-    z.door(r(10.9, 6.95, 11.1, 7.85), "t", 1)          # vstup – krídlo k stene
-    z.door(r(12.7, 8.4, 13.5, 8.5), "l", -1)           # kúpeľňa – k priečke
-    z.door(r(11.2, 9.6, 12.0, 9.7), "l", 1)            # spálňa – k stene
-    z.door(r(13.85, 9.6, 14.65, 9.7), "l", 1)          # izba 2 – k priečke
-    z.door(r(11.0, 10.6, 11.1, 11.4), "t", -1)         # kúpeľňa pri spálni – k stene
-    z.door(r(16.8, 11.7, 17.6, 11.8), "l", 1)          # izba 3 – k stene
-    z.door(r(14.7, 8.6, 14.8, 9.5), None, 0, C["t4"])  # priechod chodba → obývačka
-    z.bath(sh=r(13.75, 6.82, 14.65, 7.72), wc=r(13.0, 6.85, 13.4, 7.4), bs=r(13.9, 7.9, 14.5, 8.35))
-    z.bath(tub=r(9.15, 12.9, 9.95, 14.6), sh=r(10.05, 13.7, 10.95, 14.6), wc=r(9.15, 11.9, 9.7, 12.3), bs=r(9.15, 11.0, 9.6, 11.6))
-    z.furn("kitchen", r(14.9, 6.83, 17.3, 7.43))
-    z.furn("table", r(17.9, 9.0, 19.5, 9.8))
-    z.furn("box", r(17.0, 10.95, 19.4, 11.6))
-    z.furn("bedL", r(11.2, 11.6, 13.2, 13.2))
-    z.furn("bedL", r(13.9, 11.6, 15.9, 13.2))
-    z.furn("bedL", r(16.8, 12.3, 18.8, 13.9))
-    W += [r(17.7, 6.424, xr - 0.3, 6.724), r(x1 - 0.35, 7.4, x1 - 0.05, 11.2), r(x1 - 0.35, 12.3, x1 - 0.05, 14.0),
-          r(19.2, 14.7, xr - 0.2, 15.0), r(14.4, 14.7, 16.2, 15.0), r(11.6, 14.7, 13.3, 15.0), r(9.5, 14.7, 10.6, 15.0),
-          r(6.5, 14.7, 8.5, 15.0)]
-    B = z.rooms([("Obývacia izba + kuchyňa", [r(14.8, 6.774, xr, 9.6), r(16.7, 9.6, xr, 11.7)], dict(lab=(15.9, 8.6))),
-                 ("Predsieň", r(11.1, 6.774, 12.5, 8.5), dict(small=True, lab=(11.8, 8.0))),
-                 ("Kúp.", r(12.6, 6.774, 14.7, 8.4), dict(small=True, lab=(13.45, 7.7))),
-                 ("Chodba", r(11.1, 8.5, 14.7, 9.6), dict(small=True, lab=(13.0, 9.05))),
-                 ("Spálňa", r(11.1, 9.7, 13.7, 14.648), dict(lab=(12.4, 10.6))),
-                 ("Kúpeľňa", r(9.1, 10.424, 11.0, 14.648), dict(small=True, lab=(10.35, 12.6))),
-                 ("Izba 2", r(13.8, 9.7, 16.6, 14.648), dict(lab=(15.2, 10.6))),
-                 ("Izba 3", r(16.7, 11.8, xr, 14.648), dict(lab=(19.9, 13.0)))])
-    p.doors.append((r(11.1, 8.4, 12.5, 8.5), None, 0, C["t4"]))
-    F = [Flat("B4.01", "4", "4-izb.", A, f"terasa {area(ta):.0f}", "nový", head=(13.3, 3.95)),
-         Flat("B4.02", "4", "4-izb.", B, f"terasa {area(tb):.0f}", "nový", head=(18.9, 7.95))]
+        # ---------- B4.01: obývačka hneď pri izbách, bez chodby ----------
+        N += [r(5.7, 1.0, 6.1, 3.3), r(5.9, 2.9, 6.1, 6.574), r(5.7, 1.0, 16.6, 1.4), r(10.8, 1.0, 11.1, 6.774)]
+        z.door(r(5.9, 5.2, 6.1, 6.4), None, 0, C["t4"])     # priechod obývačka → izby
+        z.door(r(6.3, 6.574, 7.2, 6.774), "l", -1)         # vstup B4.01
+        W += [r(6.6, 1.05, 10.2, 1.35), r(5.75, 1.5, 6.05, 2.8)]
+        z.furn("kitchen", r(10.2, 1.8, 10.8, 5.0))
+        z.furn("table", r(7.0, 2.3, 8.6, 3.1))
+        z.furn("box", r(7.7, 5.65, 10.1, 6.5))
+        A = [("Obývacia izba + kuchyňa", r(6.1, 1.4, 10.8, 6.574), dict(lab=(8.3, 4.9))),
+             ("Chodba", r(4.7, 5.074, 5.9, 9.0), dict(lab=(5.3, 7.9), small=True))] + A
+        ta = [r(0.3, 0.3, 5.7, 2.9), r(5.7, 0.3, 10.95, 1.0)]
+        p.terr += [("Terasa B4.01", ta[0], "terr"), ("", ta[1], "terr")]
+        hA = (8.3, 3.9)
+        # ---------- B4.02: obývačka vo výbežku v strede, izby vzadu a na konci ----------
+        z.part(r(12.5, 6.774, 12.6, 8.4), r(11.1, 9.6, 14.0, 9.7), r(13.9, 9.7, 14.0, 14.648), r(14.0, 11.9, 15.9, 12.0),
+               r(15.9, 6.774, 16.0, 14.648), r(16.0, 10.6, xr, 10.7), r(11.1, 8.4, 12.5, 8.5), new=True)
+        z.door(r(13.0, 6.574, 15.4, 6.774), None, 0, C["t4"])   # široký priechod do obývačky
+        z.door(r(11.2, 8.4, 12.4, 8.5), None, 0, C["t4"])
+        z.door(r(11.2, 9.6, 12.0, 9.7), "l", 1)                 # spálňa
+        z.door(r(15.9, 8.6, 16.0, 9.4), "t", 1)                 # izba 3
+        z.door(r(15.9, 10.9, 16.0, 11.7), "t", 1)               # izba 2
+        z.door(r(14.2, 11.9, 15.0, 12.0), "l", 1)               # kúpeľňa
+        z.bath(sh=r(14.95, 13.7, 15.85, 14.6), wc=r(15.3, 12.3, 15.85, 12.7), bs=r(14.05, 14.1, 14.65, 14.55))
+        z.furn("kitchen", r(11.15, 1.8, 11.75, 5.0))
+        z.furn("table", r(13.2, 2.4, 14.8, 3.2))
+        z.furn("box", r(15.3, 3.7, 16.15, 6.0))
+        z.furn("bedL", r(11.2, 11.6, 13.2, 13.2))
+        z.furn("bedR", r(xr - 2.05, 7.6, xr - 0.05, 8.5))
+        z.furn("bedR", r(xr - 2.05, 12.6, xr - 0.05, 13.5))
+        W += [r(12.2, 1.05, 15.6, 1.35), r(16.9, 6.424, 18.2, 6.724), r(x1 - 0.35, 8.9, x1 - 0.05, 10.3),
+              r(x1 - 0.35, 11.2, x1 - 0.05, 12.8), r(16.5, 14.7, 18.1, 15.0), r(14.5, 14.7, 15.4, 15.0),
+              r(11.6, 14.7, 13.4, 15.0), r(9.5, 14.7, 10.6, 15.0)]
+        B = [("Obývacia izba + kuchyňa", [r(11.1, 1.4, 16.2, 6.574), r(12.6, 6.574, 15.9, 8.5)], dict(lab=(13.5, 5.2))),
+             ("Predsieň", r(11.1, 6.774, 12.5, 8.4), dict(small=True, lab=(11.8, 7.9))),
+             ("Chodba", [r(11.1, 8.5, 15.9, 9.6), r(14.0, 9.6, 15.9, 11.9)], dict(small=True, lab=(13.3, 9.05))),
+             ("Spálňa", r(11.1, 9.7, 13.9, 14.648), dict(lab=(12.5, 10.6))),
+             ("Kúp. + WC", r(14.0, 12.0, 15.9, 14.648), dict(small=True, lab=(14.6, 13.3))),
+             ("Izba 3", r(16.0, 6.774, xr, 10.6), dict(lab=(17.2, 9.6))),
+             ("Izba 2", r(16.0, 10.7, xr, 14.648), dict(lab=(17.2, 11.6)))] + suite_b(z)
+        tb = [r(10.95, 0.3, 16.6, 1.0), r(16.6, 0.3, 32.9, 6.374), r(x1, 6.374, 32.9, 12.92), r(x1, 12.92, 27.0, 14.748)]
+        p.terr += [("", tb[0], "terr"), ("Terasa B4.02", tb[1], "terr"), ("Terasa B4.02", tb[2], "terr"), ("", tb[3], "terr")]
+        hB = (13.5, 4.15)
+        tubs = [(0.6, 0.7, 2.1, 2.4), (18.5, 1.5, 20.7, 3.7)]
+        split_x = 10.95
+        dims = [0, 5.7, 16.6, x1, 33.2]
+    F = [Flat("B4.01", "4", "4-izb.", z.rooms(A), f"terasa {area(ta):.0f}", "nový", head=hA),
+         Flat("B4.02", "4", "4-izb.", z.rooms(B), f"terasa {area(tb):.0f}", "nový", head=hB)]
     p.flats = F
 
     def ex(p, c):
-        p.line(c, 16.6, 0.3, 16.6, 1.0, C["ink"], 1.2)       # deliaca stena terás
-        p.line(c, 10.9, 0.3, 10.9, 1.0, C["ink"], 0.6)
-        p.line(c, 26.0, 0.3, 26.0, 14.748, C["ink"], 1.2)
-        ty = 0.9 if v == 1 else 0.8
-        p.f_tub(c, r(8.5, ty, 10.5, ty + 2.0))
-        p.text(c, 9.5, ty + 1.1, "vírivka", 4)
-        p.f_tub(c, r(18.2, 1.0, 20.4, 3.2))
-        p.text(c, 19.3, 2.2, "vírivka", 4)
-        p.text(c, 13.75, 0.72, "ustúpenie 1,0 m – kvetináče", 3.8, col=HexColor("#5b7a3a"))
-        p.text(c, 29.4, 7.4, "(nepochôdzna – spoločná)", 4.2)
+        p.line(c, split_x, 0.3, split_x, 1.0, C["ink"], 1.4)      # deliaca stena terás
+        for i, t in enumerate(tubs):
+            p.f_tub(c, r(*t))
+            p.text(c, (t[0] + t[2]) / 2, (t[1] + t[3]) / 2 + 0.1, "vírivka", 4)
     p.extra.append(ex)
-    p.dims += [("h", -1.5, [0, 33.2]), ("h", -0.8, [0, 1.5, 10.9, 16.6, x1, 33.2] if v == 1 else [0, 10.9, 16.6, x1, 33.2]),
-               ("v", -0.9, [0, 1.0, 3.574, 6.574, 15.048])]
+    p.dims += [("h", -1.5, [0, 33.2]), ("h", -0.8, dims), ("v", -0.9, [0, 1.0, 2.9, 6.574, 15.048])]
+    return F
+
+
+def plan_4np_single(p, z, x1, xr):
+    """Variant 3: jeden veľký byt."""
+    ys, yf = YS3, YS3 + 0.4
+    N, W = p.new, p.windows
+    N += [r(10.7, ys, x1, yf), r(10.7, ys, 11.1, 6.774), r(5.9, 6.574, 11.1, 6.774), r(xr, ys, x1, 15.048)]
+    p.struct += [r(0, 0, 0.3, 13.22), r(0, 12.92, 5.7, 13.22)]
+    z.part(r(11.1, 6.674, 13.4, 6.774), r(11.1, 9.4, 13.3, 9.5), r(13.3, 9.4, 13.4, 14.648), r(11.1, 11.0, 13.3, 11.1),
+           r(11.0, 10.424, 11.1, 14.648), r(17.2, 9.5, 17.3, 14.648), r(17.2, 9.4, 24.7, 9.5), r(18.1, 8.1, xr, 8.2),
+           r(19.2, yf, 19.3, 8.1), r(22.1, yf, 22.2, 8.1), r(24.7, 8.2, 24.8, 14.648), r(24.8, 9.9, xr, 10.0),
+           r(20.0, 9.5, 20.1, 14.648), r(21.9, 9.5, 22.0, 14.648), r(20.1, 12.2, 21.9, 12.3), new=True)
+    z.door(r(10.9, 6.95, 11.1, 7.85), "t", 1)             # vstup – k stene
+    z.door(r(11.3, 9.4, 12.1, 9.5), "l", 1)               # WC hostí
+    z.door(r(13.3, 11.3, 13.4, 12.1), "t", -1)            # komora z kuchyne
+    z.door(r(11.0, 11.15, 11.1, 11.95), "t", -1)          # práčovňa
+    z.door(r(19.35, 8.1, 20.15, 8.2), "l", -1)            # izba 3
+    z.door(r(22.25, 8.1, 23.05, 8.2), "l", -1)            # spálňa
+    z.door(r(25.2, 8.1, 26.2, 8.2), None, 0, C["t4"])     # spálňa → šatník
+    z.door(r(24.85, 9.9, 25.65, 10.0), "l", 1)            # kúpeľňa spálne
+    z.door(r(19.15, 9.4, 19.95, 9.5), "r", 1)             # izba 1
+    z.door(r(20.15, 9.4, 20.95, 9.5), "l", 1)             # kúpeľňa 2
+    z.door(r(22.05, 9.4, 22.85, 9.5), "l", 1)             # izba 2
+    z.door(r(21.9, 12.6, 22.0, 13.5), None, 0, C["t4"])   # šatník izby 2
+    z.door(r(18.1, 8.25, 18.2, 9.35), None, 0, C["t4"])   # obývačka → nočná chodba
+    z.bath(wc=r(12.7, 10.4, 13.25, 10.8), bs=r(12.6, 9.6, 13.2, 10.05))
+    z.bath(sh=r(20.95, 11.25, 21.85, 12.15), wc=r(21.3, 9.7, 21.85, 10.1), bs=r(20.15, 11.6, 20.75, 12.05))
+    z.bath(tub=r(24.85, 13.85, xr - 0.05, 14.6), sh=r(xr - 0.95, 12.6, xr - 0.05, 13.5), wc=r(xr - 0.6, 10.9, xr - 0.05, 11.3),
+           bs=r(24.85, 11.4, 25.3, 12.6))
+    z.bath(box=r(9.15, 13.9, 10.95, 14.55))
+    z.furn("kitchen", r(16.6, 9.9, 17.2, 13.8))
+    z.furn("box", r(14.6, 12.4, 15.9, 13.4))              # ostrov
+    z.furn("table", r(14.0, 10.5, 15.8, 11.3))
+    z.furn("box", r(13.8, 6.6, 16.6, 7.5))                # sedačka
+    z.furn("box", r(11.2, 8.7, 13.0, 9.3))                # šatníková skriňa pri vstupe
+    z.furn("bedL", r(22.3, 5.0, 24.3, 6.6))
+    z.furn("bedL", r(19.4, 4.6, 21.4, 5.5))
+    z.furn("bedL", r(17.4, 11.5, 19.4, 12.4))
+    z.furn("bedL", r(22.1, 11.3, 24.1, 12.2))
+    W += [r(11.5, ys + 0.05, 13.0, ys + 0.35), r(13.9, ys + 0.05, 18.7, ys + 0.35), r(19.8, ys + 0.05, 21.6, ys + 0.35),
+          r(22.8, ys + 0.05, 26.2, ys + 0.35), r(x1 - 0.35, 4.6, x1 - 0.05, 7.2), r(x1 - 0.35, 11.5, x1 - 0.05, 13.0),
+          r(10.75, 4.3, 11.05, 6.0), r(11.6, 14.7, 12.8, 15.0), r(13.9, 14.7, 16.7, 15.0), r(17.8, 14.7, 19.6, 15.0),
+          r(22.5, 14.7, 24.3, 15.0), r(9.5, 14.7, 10.6, 15.0)]
+    A = [("Obývacia izba + jedáleň", [r(13.4, yf, 19.2, 8.1), r(13.4, 8.1, 18.1, 9.4), r(11.1, yf, 13.4, 6.674)], dict(lab=(16.3, 5.6))),
+         ("Kuchyňa s ostrovom", r(13.4, 9.4, 17.2, 14.648), dict(lab=(15.0, 14.1))),
+         ("Predsieň", r(11.1, 6.774, 13.4, 9.4), dict(lab=(12.2, 8.0))),
+         ("WC", r(11.1, 9.5, 13.3, 11.0), dict(small=True, lab=(11.8, 10.5))),
+         ("Komora", r(11.1, 11.1, 13.3, 14.648), dict(lab=(12.2, 13.0))),
+         ("Práčovňa / technika", r(9.1, 10.424, 11.0, 14.648), dict(small=True, lab=(10.05, 12.4))),
+         ("Chodba", r(18.2, 8.2, 24.7, 9.4), dict(small=True, lab=(21.5, 8.75))),
+         ("Izba 3 / pracovňa", r(19.3, yf, 22.1, 8.1), dict(lab=(20.7, 6.6))),
+         ("Spálňa", r(22.2, yf, xr, 8.1), dict(lab=(25.5, 5.6))),
+         ("Šatník", r(24.8, 8.2, xr, 9.9), dict(small=True, lab=(25.8, 9.3))),
+         ("Kúpeľňa + WC", r(24.8, 10.0, xr, 14.648), dict(small=True, lab=(25.9, 12.0))),
+         ("Izba 1", r(17.3, 9.5, 20.0, 14.648), dict(lab=(18.6, 10.6))),
+         ("Kúp. + WC", r(20.1, 9.5, 21.9, 12.2), dict(small=True, lab=(21.0, 10.8))),
+         ("Šatník", r(20.1, 12.3, 21.9, 14.648), dict(small=True, lab=(21.0, 13.5))),
+         ("Izba 2", r(22.0, 9.5, 24.7, 14.648), dict(lab=(23.4, 10.6)))]
+    ta = [r(0.3, 0.3, 32.9, ys), r(0.3, ys, 5.7, 12.92), r(5.7, ys, 10.7, 6.574), r(x1, ys, 32.9, 12.92)]
+    p.terr += [("Terasa – celá strecha patrí bytu", ta[0], "terr"), ("Terasa", ta[1], "terr"), ("", ta[2], "terr"), ("Terasa", ta[3], "terr")]
+    F = [Flat("B4.01", "4", "5-izb.", z.rooms(A), f"terasa {area(ta):.0f}", "nový – jediný byt na 4.NP", head=(16.3, 4.6))]
+    p.flats = F
+
+    def ex(p, c):
+        p.f_tub(c, r(2.2, 5.0, 4.6, 7.4))
+        p.text(c, 3.4, 6.3, "vírivka", 4)
+    p.extra.append(ex)
+    p.dims += [("h", -1.5, [0, 33.2]), ("h", -0.8, [0, 10.7, x1, 33.2]), ("v", -0.9, [0, ys, 15.048])]
     return F
 
 
@@ -631,8 +730,8 @@ LEG_SPLIT = [("fill", "struct", "Obvodové a nosné steny – bez zmeny oproti P
              ("fill", "t1", "Jednotka 1-izbová"), ("fill", "t2", "Byt 2-izbový"),
              ("fill", "common", "Spoločné priestory"), ("fill", "terr", "Balkón / lodžia / terasa")]
 LEG_4 = [("fill", "struct", "Atika strechy 3.NP"), ("fill", "new", "Nové konštrukcie – celé ustúpené podlažie"),
-         ("fill", "t4", "Byt 4-izbový"), ("fill", "common", "Spoločné priestory"),
-         ("fill", "terr", "Terasa bytu"), ("fill", "green", "Vegetačná strecha / FVE / kvetináče")]
+         ("fill", "t4", "Byt na 4.NP"), ("fill", "common", "Spoločné priestory"),
+         ("fill", "terr", "Terasa bytu – celá strecha patrí bytom")]
 COLS = [("Byt", 14, "l"), ("Typ", 22, "l"), ("Plocha", 18, "r"), ("Balkón / lodžia / terasa", 34, "l"), ("Pôvod · budúce delenie", 0, "l")]
 
 
@@ -669,7 +768,7 @@ def section(c, x0, y0, s=5.0):
     c.setStrokeColor(C["ink"])
     lv = [(-2.8, 0.0, 6.376, 15.048, "1.PP", C["common"]), (0.0, 2.975, 0, 15.048, "1.NP", C["t3"]),
           (2.975, 5.95, 0, 15.048, "2.NP", C["t3"]), (5.95, 8.925, 0, 15.048, "3.NP", C["t2"]),
-          (8.925, 11.9, 3.574, 15.048, "4.NP", C["t4"])]
+          (8.925, 11.9, 2.9, 15.048, "4.NP", C["t4"])]
     for z1, z2, a, b, nm, col in lv:
         c.setFillColor(col)
         c.rect(X(a), Z(z1), (b - a) * s * MM, (z2 - z1) * s * MM, fill=1, stroke=1)
@@ -697,12 +796,12 @@ def section(c, x0, y0, s=5.0):
     c.setStrokeColor(C["ink"])
     c.setLineWidth(0.5)
     c.line(X(0), Z(8.925), X(0), Z(10.0))
-    c.line(X(3.574), Z(12.45), X(15.048), Z(12.45))
-    c.line(X(3.574), Z(11.9), X(3.574), Z(12.45))
+    c.line(X(2.9), Z(12.45), X(15.048), Z(12.45))
+    c.line(X(2.9), Z(11.9), X(2.9), Z(12.45))
     c.line(X(15.048), Z(11.9), X(15.048), Z(12.45))
     c.setFont("F", 5)
     c.setFillColor(C["ink"])
-    c.drawString(X(0.2), Z(9.3), "terasa 3,6 m")
+    c.drawString(X(0.2), Z(9.3), "terasa")
     c.setStrokeColor(HexColor("#6b4f2a"))
     c.setLineWidth(1)
     c.line(X(-4), Z(-2.8), X(6.376), Z(-2.8))
@@ -713,7 +812,7 @@ def section(c, x0, y0, s=5.0):
 
 
 def sheet_summary(c, floors, f4, fpp):
-    frame(c, "VARIANT C (rev. 2) · SÚHRN", SUB, "Súhrn, bilancia, porovnanie 4.NP", 1, TOTAL, scale="rez 1:200")
+    frame(c, "VARIANT C (rev. 3) · SÚHRN", SUB, "Súhrn, bilancia, porovnanie 4.NP", 1, TOTAL, scale="rez 1:200")
     allf = [f for F in floors for f in F]
     rows = []
     for i, F in enumerate(floors):
@@ -721,45 +820,48 @@ def sheet_summary(c, floors, f4, fpp):
         for f in F:
             typs[f.tname] = typs.get(f.tname, 0) + 1
         rows.append([f"{i + 1}.NP", str(len(F)), " + ".join(f"{v}× {kk}" for kk, v in typs.items()), m2(sum(f.a for f in F), 1), "9 (6× 1-izb. + 3× 2-izb.)"])
-    rows.append(["4.NP", "2", "2× 4-izb.", f"{k(sum(f.a for f in f4[1]))} / {k(sum(f.a for f in f4[2]))} m²", "2"])
+    rows.append(["4.NP", "2 (V3: 1)", "2× 4-izb. (V3: 1× 5-izb.)", " / ".join(k(sum(f.a for f in f4[v])) for v in (1, 2, 3)) + " m²", "2 (1)"])
     rows.append(["Spolu byty", "18", "", "", "29"])
     rows.append(["1.PP", "(+1)", "nebytový priestor – 1-izb.", m2(fpp[0].a, 1), "(+1)"])
-    table(c, 14, 266, [("Podlažie", 22, "l"), ("Bytov", 13, "l"), ("Skladba (stav do povolenia)", 52, "l"), ("Plocha bytov", 30, "r"), ("Po rozdelení", 0, "l")],
+    table(c, 14, 266, [("Podlažie", 22, "l"), ("Bytov", 17, "l"), ("Skladba (stav do povolenia)", 50, "l"), ("Plocha bytov", 34, "r"), ("Po rozdelení", 0, "l")],
           rows, title="BILANCIA – 18 BYTOV DO POVOLENIA, PRIPRAVENÉ NA 29 + 1", size=5.8, lead=4.5)
 
     # ---- porovnanie variantov 4.NP ----
-    def tsum(F):
-        return F[0].ext.replace("terasa ", ""), F[1].ext.replace("terasa ", "")
-    g1, g2 = gross_4np(1), gross_4np(2)
+    def ter(f):
+        return f.ext.replace("terasa ", "") + " m²"
+
+    def room(f, name):
+        return k(sum(x.a for x in f.rooms if x.name == name))
+    gs = {v: gross_4np(v) for v in (1, 2, 3)}
     A1, B1 = f4[1]
     A2, B2 = f4[2]
-    ch1 = [x for x in A1.rooms if x.name == "Chodba"][0].a
-    ch2 = [x for x in A2.rooms if x.name == "Chodba"][0].a
-    rows = [["Hrubá plocha 4.NP (limit 233,5 m²)", f"{k(g1)} m² · {k(g1 / ZAST * 100)} %", f"{k(g2)} m² · {k(g2 / ZAST * 100)} %"],
-            ["B4.01 – plocha / izby", f"{k(A1.a)} m² · 4-izb.", f"{k(A2.a)} m² · 4-izb."],
-            ["B4.01 – terasa", f"{tsum(f4[1])[0]} m² (átrium + predná + bočná)", f"{tsum(f4[2])[0]} m² (jedna priebežná, hĺbka 3,3 m)"],
-            ["B4.01 – izby", "12,0 + 10,3 + 13,7 m²", "11,9 + 11,8 + 16,6 m²"],
-            ["B4.01 – chodba v byte", f"{k(ch1)} m²", f"{k(ch2)} m²"],
-            ["B4.02 – plocha / izby", f"{k(B1.a)} m² · 4-izb.", f"{k(B2.a)} m² · 4-izb."],
-            ["B4.02 – terasa", f"{tsum(f4[1])[1]} m² (predná 5,2 × 6,1 m + bočná)", f"{tsum(f4[2])[1]} m² (predná 4,4 × 6,1 m + bočná)"],
-            ["Odstup od JZ štítu", "1,5 m (bočná terasa)", "0 – krídlo lícuje so štítom"],
-            ["Koniec hmoty smerom k SV", "x = 21,8 m", "x = 21,0 m"]]
-    y2 = table(c, 14, 218, [("4.NP", 52, "l"), ("Variant 1 – átrium", 58, "l"), ("Variant 2 – priebežná terasa", 0, "l")],
-               rows, title="POROVNANIE DVOCH VARIANTOV 4.NP", size=5.6, lead=4.4)
-    y2 = notes(c, 14, y2 - 3, "PRINCÍP 4.NP (oba varianty)", [
-        "B4.01: vľavo krídlo s tromi izbami, popri schodisku len úzky spojovací trakt (chodba 1,2 m + kúpeľňa a WC s oknom) a pred ním terasa k parkovisku; vpravo od schodiska výbežok s obývačkou a kuchyňou.",
-        "B4.02: izby do záhrady, obývačka s kuchyňou na konci s presklením do vlastnej prednej terasy hlbokej 6 m a do bočnej terasy.",
-        "Zadná stena lícuje so záhradnou fasádou. Výbežok obývačky B4.01 je od fasády ustúpený o 1,0 m.",
-        "Väčšie byty limit 50 % nepustí: z 233 m² zoberie schodisko s výťahom 35 m² a zvyšok obvodové steny.",
-    ], width=150, size=5.6)
-    notes(c, 14, y2 - 2, "VÝŤAH – POSÚDENÉ POLOHY", [
-        "A) V trakte bytu B03 pri schodisku, dvere do spoločnej chodby (ZVOLENÉ) – stanica na každom podlaží vrátane 1.PP, fasáda aj schodisko bez zmeny, B03 ostáva 2-izbový (−6 m²).",
-        "B) Strana k parkovisku: v 1.PP je tam otvorené kryté parkovanie, šachta by stála pred hlavným vstupom. C) Koniec chodby: odreže vstup do štítového bytu. D) V schodiskovej hale po prestavbe schodiska: byty nestratia nič, ale zanikne zadný vstup zo záhrady – rezerva na rokovanie. E) Vonkajšia šachta na záhradnej fasáde: zastavuje na medzipodestách.",
-    ], width=150, size=5.6)
+    S3 = f4[3][0]
+    rows = [["Počet bytov na 4.NP", "2", "2", "1"],
+            ["Hrubá plocha (limit 233,5 m²)", f"{k(gs[1])} m² · {k(gs[1] / ZAST * 100)} %", f"{k(gs[2])} m² · {k(gs[2] / ZAST * 100)} %", f"{k(gs[3])} m² · {k(gs[3] / ZAST * 100)} %"],
+            ["B4.01 – plocha", f"{k(A1.a)} m² · 4-izb.", f"{k(A2.a)} m² · 4-izb.", f"{k(S3.a)} m² · 5-izb."],
+            ["B4.01 – obývačka + kuchyňa", room(A1, "Obývacia izba + kuchyňa") + " m²", room(A2, "Obývacia izba + kuchyňa") + " m²", "57,6 m²"],
+            ["B4.01 – chodby v byte", room(A1, "Chodba") + " m²", room(A2, "Chodba") + " m²", room(S3, "Chodba") + " m² + predsieň"],
+            ["B4.01 – terasa", ter(A1) + " (aj pri schodisku)", ter(A2) + " (len pred izbami)", ter(S3) + " (celá strecha)"],
+            ["B4.02 – plocha", f"{k(B1.a)} m² · 4-izb.", f"{k(B2.a)} m² · 4-izb.", "–"],
+            ["B4.02 – obývačka + kuchyňa", room(B1, "Obývacia izba + kuchyňa") + " m²", room(B2, "Obývacia izba + kuchyňa") + " m²", "–"],
+            ["B4.02 – terasa", ter(B1), ter(B2), "–"],
+            ["Spálňa + šatník + vlastná kúpeľňa", "oba byty", "oba byty", "áno + 2. kúpeľňa, WC hostí"],
+            ["Byty na 1.–3.NP (spolu 18)", "5 + 5 + 6", "5 + 5 + 6", "5 + 6 + 6"]]
+    y2 = table(c, 14, 218, [("4.NP", 46, "l"), ("Variant 1 – chodba + terasa", 38, "l"), ("Variant 2 – bez chodby", 36, "l"), ("Variant 3 – jeden byt", 0, "l")],
+               rows, title="POROVNANIE TROCH VARIANTOV 4.NP", size=5.4, lead=4.3)
+    y2 = notes(c, 14, y2 - 3, "PRINCÍP VARIANTOV 4.NP", [
+        "Všetky: zadná stena lícuje so záhradnou fasádou, celá strecha mimo bytov sú terasy bytov (žiadna spoločná plocha, žiadna FVE). Každý byt má spálňu so šatníkom a vlastnou kúpeľňou s WC + druhú kúpeľňu s WC pre izby.",
+        "V1: vľavo krídlo izieb, popri schodisku už len presklená chodba 1,5 m a pred ňou terasa, vpravo výbežok s obývačkou a kuchyňou. B4.02 má prednú terasu 6 m hlbokú a celú pravú časť strechy.",
+        "V2: obývačka B4.01 je hneď pri izbách pred schodiskom – byt nemá spojovaciu chodbu, ale terasu má len pred izbami. Obývačka B4.02 je vo výbežku v strede, izby vzadu a na konci.",
+        "V3: jeden 5-izbový byt napravo od schodiska, vpredu terasa 3,1 m po celej dĺžke + celá ľavá aj pravá časť strechy. 180 m² limit 50 % nepustí – po odpočítaní schodiska s výťahom vychádza max. cca 172 m². Aby ostalo 18 bytov, 2.NP by malo 6 bytov ako 3.NP.",
+    ], width=150, size=5.5)
+    notes(c, 14, y2 - 2, "VÝŤAH", [
+        "V trakte bytu B03 pri schodisku, dvere do spoločnej chodby – stanica na každom podlaží vrátane 1.PP, fasáda aj schodisko bez zmeny, B03 ostáva 2-izbový (−6 m²). Ostatné polohy (strana k parkovisku, koniec chodby, schodisková hala, vonkajšia šachta) sú horšie – viď predchádzajúca revízia.",
+    ], width=150, size=5.5)
     # ---- zoznam bytov ----
     rows = [[f.id, f.tname, m2(f.a), f.ext, f.note] for f in allf]
     for f in f4[1]:
-        rows.append([f.id, f.tname, f"{k(f.a, 2)} m²", f.ext, "V1 (V2: " + k([x for x in f4[2] if x.id == f.id][0].a) + " m²)"])
+        rows.append([f.id, f.tname, f"{k(f.a, 2)} m²", f.ext, "variant 1 (V2: " + k([x for x in f4[2] if x.id == f.id][0].a) + " m²)"])
     rows.append([fpp[0].id, fpp[0].tname, m2(fpp[0].a), fpp[0].ext, fpp[0].note])
     table(c, 172, 266, [("Byt", 14, "l"), ("Typ", 21, "l"), ("Plocha", 19, "r"), ("Balkón / terasa m²", 34, "l"), ("Pôvod · budúce delenie", 0, "l")],
           rows, title="ZOZNAM BYTOV (stav do povolenia)", size=5.6, lead=4.25)
@@ -791,12 +893,12 @@ def sheet_summary(c, floors, f4, fpp):
 
 def main():
     c = canvas.Canvas(OUT, pagesize=landscape(A3))
-    c.setTitle("BD Palárikova – variant C rev. 2 (18 bytov, ustúpené 4.NP v 2 variantoch, výťah)")
+    c.setTitle("BD Palárikova – variant C rev. 3 (18 bytov, ustúpené 4.NP v 3 variantoch, výťah)")
     c.setAuthor("LEFA Solutions s.r.o.")
     floors = [typical(Plan(), fl, north=nm) for fl, nm in ((1, "merge"), (2, "merge"), (3, "b06"))]
-    f4 = {v: plan_4np(Plan(), v) for v in (1, 2)}
+    f4 = {v: plan_4np(Plan(), v) for v in (1, 2, 3)}
     fpp = plan_pp(Plan())
-    for v in (1, 2):
+    for v in (1, 2, 3):
         assert gross_4np(v) <= ZAST / 2, (v, gross_4np(v))
     assert sum(len(F) for F in floors) + 2 == 18
 
@@ -815,7 +917,7 @@ def main():
               "B{0}.04 (modrý) a B{0}.05 (ružový) = byt B04 / B05 z PD + polovica štítového bytu B06, prepojené jedným dverným otvorom v nosnej stene.",
               "Rozdelenie: zamuruje sa prepojovací otvor na fialovej čiare, otvorí sa pripravený 2. vstup zo zádveria a doplní kuchynská linka.",
               "B{0}.01 (oranžový) a B{0}.02 (fialový) sa rovnako delia na 2× 1-izb.",
-              "Po rozdelení: 9 jednotiek na podlaží (list 8). Okná, lodžie a balkóny bez zmeny oproti PD."]
+              "Po rozdelení: 9 jednotiek na podlaží (list 9). Okná, lodžie a balkóny bez zmeny oproti PD."]
     sheet_plan(c, 3, "VARIANT C · PÔDORYS 1.NP (±0,000)", "Pôdorys 1.NP", lambda p: typical(p, 1, north="merge"),
                LEG_OFF, [s.format(1) for s in note_m], "BYTY – 1.NP")
     sheet_plan(c, 4, "VARIANT C · PÔDORYS 2.NP (+2,975)", "Pôdorys 2.NP", lambda p: typical(p, 2, north="merge"),
@@ -826,17 +928,27 @@ def main():
                          "B3.03, B3.04 a B3.05 (zelené) sa nedelia. B3.05: druhá predsieň z PD je pripojená k izbe.",
                          "B3.03 je oproti PD menší o výťahovú šachtu, ostáva 2-izbový.",
                          "Okná, lodžie a balkóny bez zmeny oproti PD."], "BYTY – 3.NP")
-    for v, nm, extra in ((1, "VARIANT 1 – ÁTRIOVÁ TERASA", "Krídlo izieb je od JZ štítu ustúpené o 1,5 m a od fasády o 2,0 m; terasa B4.01 = átrium pred chodbou + predná + bočná."),
-                         (2, "VARIANT 2 – PRIEBEŽNÁ TERASA", "Krídlo izieb lícuje s JZ štítom, vpredu je ustúpené o 3,6 m; terasa B4.01 ide v jednom kuse od štítu až po obývačku (10,6 × 3,3 m).")):
+    V4 = {1: ("VARIANT 1 – CHODBA PRI SCHODISKU + TERASA", [
+              "B4.01: vľavo izba 1, izba 2 a spoločná kúpeľňa s WC, vzadu spálňa so šatníkom a vlastnou kúpeľňou. Popri schodisku je už len presklená chodba 1,5 m (WC a kúpeľňa sú presunuté doľava) a pred ňou terasa; vpravo výbežok s obývačkou a kuchyňou.",
+              "B4.02: spálňa so šatníkom a vlastnou kúpeľňou, dve izby, druhá kúpeľňa s WC, obývačka s kuchyňou na konci s presklením do prednej terasy hlbokej 6 m.",
+              "Celá strecha mimo bytov sú terasy: B4.01 pred izbami, pri schodisku a pred obývačkou; B4.02 celá pravá časť strechy."]),
+          2: ("VARIANT 2 – BEZ CHODBY, OBÝVAČKY V STREDE", [
+              "B4.01: obývačka s kuchyňou je hneď pri izbách pred schodiskom – žiadna spojovacia chodba (len 4,7 m² pri izbách). Cena: terasa len pred izbami a úzky pás pred obývačkou.",
+              "B4.02: obývačka s kuchyňou vo výbežku v strede so širokým priechodom, spálňa so šatníkom a kúpeľňou vzadu, dve izby na konci, druhá kúpeľňa s WC.",
+              "B4.02 má celú pravú časť strechy – prednú terasu 6 m hlbokú po celej dĺžke a bočnú."]),
+          3: ("VARIANT 3 – JEDEN VEĽKÝ BYT", [
+              "Jediný 5-izbový byt: obývačka s jedálňou a kuchyňa s ostrovom v ľavej časti, spálňa so šatníkom a kúpeľňou, tri izby, druhá kúpeľňa, WC hostí, komora a práčovňa.",
+              "180 m² sa do limitu 50 % nezmestí: z 233,5 m² zoberie schodisko s výťahom a obvodové steny toľko, že čistá plocha vychádza cca 172 m².",
+              "Terasa: 3,1 m hlboký pás vpredu po celej dĺžke domu + celá ľavá a pravá časť strechy.",
+              "Aby ostalo 18 bytov, 2.NP by v tomto variante malo 6 bytov ako 3.NP (5 + 6 + 6 + 1)."])}
+    for v in (1, 2, 3):
+        nm, lines = V4[v]
         g = gross_4np(v)
         sheet_plan(c, 5 + v, f"VARIANT C · 4.NP (+8,925) · {nm}", f"Pôdorys 4.NP – variant {v}", lambda p, v=v: plan_4np(p, v), LEG_4,
-                   [f"Hrubá plocha 4.NP {k(g)} m² = {k(g / ZAST * 100)} % zo zastavanej plochy {ZAST:.0f} m² (limit {k(ZAST / 2)} m²), vrátane schodiska a výťahu.",
-                    extra,
-                    "B4.01: vľavo tri izby, popri schodisku spojovací trakt (chodba 1,2 m, kúpeľňa a WC s oknom do terasy), vpravo výbežok s obývačkou a kuchyňou – presklenie dopredu aj do terasy.",
-                    "B4.02: predná terasa hlboká 6,1 m priamo pred obývačkou + bočná terasa; spálňa s vlastnou kúpeľňou a dve izby do záhrady.",
-                    "Zadná stena lícuje so záhradnou fasádou. Zvyšok strechy od x = 26 m je spoločný (FVE, VZT, vegetačná strecha)."],
+                   [f"Hrubá plocha 4.NP {k(g)} m² = {k(g / ZAST * 100)} % zo zastavanej plochy {ZAST:.0f} m² (limit {k(ZAST / 2)} m²), vrátane schodiska a výťahu."] + lines
+                   + ["Zadná stena lícuje so záhradnou fasádou. Žiadna spoločná plocha ani FVE na streche."],
                    f"BYTY – 4.NP · VARIANT {v}")
-    sheet_plan(c, 8, "VARIANT C · TYPICKÉ PODLAŽIE PO ROZDELENÍ (1.–3.NP)", "Stav po rozdelení bytov",
+    sheet_plan(c, 9, "VARIANT C · TYPICKÉ PODLAŽIE PO ROZDELENÍ (1.–3.NP)", "Stav po rozdelení bytov",
                lambda p: typical(p, 0, south="split", b02="split", north="split", ids=[f"J{i}" for i in range(1, 10)]),
                LEG_SPLIT,
                ["Cieľový stav každého z 1.–3.NP po rozdelení: 9 jednotiek (6× 1-izb., 3× 2-izb.).",
@@ -845,8 +957,8 @@ def main():
                 "Spolu po rozdelení: 3 × 9 + 2 byty na 4.NP = 29 bytov + jednotka v 1.PP."],
                "JEDNOTKY – TYPICKÉ PODLAŽIE PO ROZDELENÍ")
     c.save()
-    print("OK", OUT, "gross", round(gross_4np(1), 1), round(gross_4np(2), 1),
-          [[round(f.a, 1) for f in f4[v]] for v in (1, 2)], [f.ext for v in (1, 2) for f in f4[v]])
+    print("OK", OUT, "gross", [round(gross_4np(v), 1) for v in (1, 2, 3)],
+          [[round(f.a, 1) for f in f4[v]] for v in (1, 2, 3)], [f.ext for v in (1, 2, 3) for f in f4[v]])
 
 
 if __name__ == "__main__":
